@@ -95,11 +95,11 @@ def index():
         ).json()
         
         greeting = random.choice([
-            f"Hello {user["displayName"]}, it's great to have you here!",
-            f"Welcome, {user["displayName"]}! Hope you're having a wonderful day!",
-            f"Greetings {user["displayName"]}! Wonderful to see you!",
-            f"Hey {user["displayName"]}, welcome aboard!",
-            f"Welcome, {user["displayName"]}! Let's get started!",
+            f"Hello {user['displayName']}, it's great to have you here!",
+            f"Welcome, {user['displayName']}! Hope you're having a wonderful day!",
+            f"Greetings {user['displayName']}! Wonderful to see you!",
+            f"Hey {user['displayName']}, welcome aboard!",
+            f"Welcome, {user['displayName']}! Let's get started!",
         ])
     
     return render_template('index.html', user=user, greeting=greeting)
