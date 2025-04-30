@@ -49,7 +49,7 @@ def login():
         f"&response_mode=query",
         f"&scope={' '.join(SCOPES)}",
     ])
-    print(auth_url)
+    
     return redirect(auth_url)
 
 
