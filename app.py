@@ -91,7 +91,7 @@ def index():
     if "access_token" in session:
         user = requests.get(
             "https://graph.microsoft.com/v1.0/me",
-            headers={"Authorization": f"Bearer {session["access_token"]}"}
+            headers={"Authorization": f"Bearer {session['access_token']}"}
         ).json()
         
         greeting = random.choice([
