@@ -3,18 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <title>Users</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #dedede;
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-
     <h1>Tenant Users</h1>
-    <ul>
-        {% for user in result.value %}
-            <li class="flash">{{ user.displayName }}</li>
-        {% endfor %}
-    </ul>
+    <table>
+        <thead>
+            <tr>
+                <th>Display Name</th>
+                <th>User Principal Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in result.value %}
+                <tr>
+                    <td>{{ user.displayName }}</td>
+                    <td>{{ user.userPrincipalName }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-    <!-- Print json -->
-    <!-- pre> {{ result |tojson(indent=4) }}</pre -->
-<a href="/">back</a>
+    <a href="/">back</a>
 </body>
 </html>

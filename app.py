@@ -4,28 +4,21 @@ import os
 import json
 from flask import Flask, redirect, render_template, request, session, url_for
 from flask_session import Session
+import random
 
 # The following variables are required for the app to run.
-
-# TODO: Use the Azure portal to register your application and generate client id and secret credentials.
 
 with open("secrets.json") as f:
     data = dict(json.load(f))
     CLIENT_ID = data.get("CLIENT_ID")
     CLIENT_SECRET = data.get("CLIENT_SECRET")
+    AUTHORITY = data.get("TENANT_ID")
 
-# TODO: Figure out your authentication authority id.
-AUTHORITY = ""
+SESSION_SECRET = os.urandom(24).hex()
 
-# TODO: generate a secret. Used by flask session for protecting cookies.
-SESSION_SECRET = ""
+SCOPES = ["User.Read", "User.ReadBasic.All", "User.ReadWrite"]
 
-# TODO: Figure out what scopes you need to use
-SCOPES = [""]
-
-# TODO: Figure out the URO where Azure will redirect to after authentication. After deployment, this should
-#  be on your server. The URI must match one you have configured in your application registration.
-REDIRECT_URI = ""
+REDIRECT_URI = "http://localhost:5000/getAToken"
 
 REDIRECT_PATH = "/getAToken"
 
@@ -38,73 +31,142 @@ app.config['DEBUG'] = True
 Session(app)
 
 # The auth object provide methods for interacting with the Microsoft OpenID service.
+# but it's gone unused in this implementation
 auth = identity.web.Auth(session=session,
-                         authority=AUTHORITY,
-                         client_id=CLIENT_ID,
-                         client_credential=CLIENT_SECRET)
+                        authority=AUTHORITY,
+                        client_id=CLIENT_ID,
+                        client_credential=CLIENT_SECRET)
 
 @app.route("/login")
 def login():
-    # TODO: Use the auth object to log in.
-    response = {}
-    return render_template("login.html", **response)
+    # this doesn't use the auth library due to not being able to find working documentation
+    # whilst we found out how to generate the url directly
+    auth_url = "".join([
+        f"https://login.microsoftonline.com/{AUTHORITY}/oauth2/v2.0/authorize",
+        f"?client_id={CLIENT_ID}",
+        f"&response_type=code",
+        f"&redirect_uri={REDIRECT_URI}",
+        f"&response_mode=query",
+        f"&scope={" ".join(SCOPES)}",
+    ])
+    print(auth_url)
+    return redirect(auth_url)
 
 
 @app.route(REDIRECT_PATH)
 def auth_response():
-    # TODO: Use the flask request object and auth object to complete the authentication.
+    code = request.args.get("code")
+    
+    token_response = requests.post(
+        f"https://login.microsoftonline.com/{AUTHORITY}/oauth2/v2.0/token",
+        data={
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "code": code,
+            "redirect_uri": REDIRECT_URI,
+            "grant_type": "authorization_code",
+            "scope": " ".join(SCOPES)
+        }
+    )
+    
+    if token_response.status_code == 200:
+        session["access_token"] = token_response.json().get("access_token")
+    else:
+        return "Error retrieving access token", 400
+
     return redirect("/")
 
 
 @app.route("/logout")
 def logout():
-    # TODO: Use the auth object to log out and redirect to the home page
-    return redirect("FIXME")
+    session.clear()
+    return redirect("/")
 
 
 @app.route("/")
 def index():
-    # TODO: use the auth object to get the profile of the logged in user.
-    return render_template('index.html', user=None)
+    user = None
+    greeting = None
+    
+    if "access_token" in session:
+        user = requests.get(
+            "https://graph.microsoft.com/v1.0/me",
+            headers={"Authorization": f"Bearer {session["access_token"]}"}
+        ).json()
+        
+        greeting = random.choice([
+            f"Hello {user["displayName"]}, it's great to have you here!",
+            f"Welcome, {user["displayName"]}! Hope you're having a wonderful day!",
+            f"Greetings {user["displayName"]}! Wonderful to see you!",
+            f"Hey {user["displayName"]}, welcome aboard!",
+            f"Welcome, {user["displayName"]}! Let's get started!",
+        ])
+    
+    return render_template('index.html', user=user, greeting=greeting)
 
 
 @app.route("/profile", methods=["GET"])
 def get_profile():
+    if "access_token" not in session:
+        return render_template('restricted_page.html')
 
-    # TODO: Check that the user is loggen in and add credentials to the http request.
     result = requests.get(
-        'https://graph.microsoft.com/v1.0/me'
+        "https://graph.microsoft.com/v1.0/me",
+        headers={'Authorization': f'Bearer {session["access_token"]}'}
     )
 
     return render_template('profile.html', user=result.json(), result=None)
 
+
 @app.route("/profile", methods=["POST"])
 def post_profile():
+    if "access_token" not in session:
+        return render_template('restricted_page.html')
+    
+    ID = requests.get(
+        "https://graph.microsoft.com/v1.0/me",
+        headers={'Authorization': f'Bearer {session["access_token"]}'}
+    ).json().get("id")
+    
+    # this is terrible, but it works
+    if not ID:
+        profile = requests.get(
+            "https://graph.microsoft.com/v1.0/me",
+            headers={'Authorization': f'Bearer {session["access_token"]}'}
+        )
+        
+        return render_template('profile.html',
+                        user=profile.json(),
+                        result="Failed to fetch your user ID")
 
-    # TODO: check that the user is logged in and add credentials to the http request.
+        
     result = requests.patch(
-        'https://graph.microsoft.com/v1.0/users/' + request.form.get("id"),
+        f"https://graph.microsoft.com/v1.0/users/{ID}",
         json=request.form.to_dict(),
+        headers={'Authorization': f'Bearer {session["access_token"]}'}
     )
 
-    # TODO: add credentials to the http request.
     profile = requests.get(
-        'https://graph.microsoft.com/v1.0/me',
-
+        "https://graph.microsoft.com/v1.0/me",
+        headers={'Authorization': f'Bearer {session["access_token"]}'}
     )
+    
     return render_template('profile.html',
-                           user=profile.json(),
-                           result=result)
+                            user=profile.json(),
+                            result=result)
 
 
 @app.route("/users")
 def get_users():
-
-    # TODO: Check that user is logged in and add credentials to the request.
-
+    if "access_token" not in session:
+        return render_template('restricted_page.html')
+    
     result = requests.get(
-        'https://graph.microsoft.com/v1.0/users'
+        "https://graph.microsoft.com/v1.0/users",
+        headers={'Authorization': f'Bearer {session["access_token"]}'}
     )
+    
+    print(result.json())
     return render_template('users.html', result=result.json())
 
 
