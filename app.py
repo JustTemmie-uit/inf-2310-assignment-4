@@ -47,7 +47,7 @@ def login():
         f"&response_type=code",
         f"&redirect_uri={REDIRECT_URI}",
         f"&response_mode=query",
-        f"&scope={" ".join(SCOPES)}",
+        f"&scope={' '.join(SCOPES)}",
     ])
     print(auth_url)
     return redirect(auth_url)
@@ -65,7 +65,7 @@ def auth_response():
             "code": code,
             "redirect_uri": REDIRECT_URI,
             "grant_type": "authorization_code",
-            "scope": " ".join(SCOPES)
+            "scope": ' '.join(SCOPES)
         }
     )
     
