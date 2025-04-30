@@ -1,14 +1,18 @@
 import identity.web
 import requests
 import os
+import json
 from flask import Flask, redirect, render_template, request, session, url_for
 from flask_session import Session
 
 # The following variables are required for the app to run.
 
 # TODO: Use the Azure portal to register your application and generate client id and secret credentials.
-CLIENT_ID = ""
-CLIENT_SECRET = ""
+
+with open("secrets.json") as f:
+    data = dict(json.load(f))
+    CLIENT_ID = data.get("CLIENT_ID")
+    CLIENT_SECRET = data.get("CLIENT_SECRET")
 
 # TODO: Figure out your authentication authority id.
 AUTHORITY = ""
