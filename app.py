@@ -13,12 +13,12 @@ with open("secrets.json") as f:
     CLIENT_ID = data.get("CLIENT_ID")
     CLIENT_SECRET = data.get("CLIENT_SECRET")
     AUTHORITY = data.get("TENANT_ID")
+    REDIRECT_URI = data.get("REDIRECT_URI")
 
 SESSION_SECRET = os.urandom(24).hex()
 
 SCOPES = ["User.Read", "User.ReadBasic.All", "User.ReadWrite"]
 
-REDIRECT_URI = "http://localhost:5000/getAToken"
 
 REDIRECT_PATH = "/getAToken"
 
